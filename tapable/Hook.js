@@ -43,7 +43,23 @@ class Hook {
     }
     _insert(tapInfo) {
         this._resetCompilation();
-        this.taps.push(tapInfo);
+        let stage = 0;
+        if (typeof tapInfo.stage === "number") {
+            stage = tapInfo.stage;
+        }
+        let i = this.taps.length;
+        while (i > 0) {
+            i--;
+            const x = this.taps[i];
+            this.taps[i + 1] = x;
+            const xStage = x.stage || 0;
+            if (xStage > stage) {
+                continue;
+            }
+            i++;
+            break;
+        }
+        this.taps[i] = tapInfo;
     }
     compile(options) {
         throw new Error("Abstract: should be overridden");
@@ -52,7 +68,7 @@ class Hook {
         return this.compile({
             taps: this.taps,
             args: this.args,
-            interceptors:this.interceptors,
+            interceptors: this.interceptors,
             type
         });
     }
