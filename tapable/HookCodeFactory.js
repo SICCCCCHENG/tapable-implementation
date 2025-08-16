@@ -35,7 +35,17 @@ class HookCodeFactory {
             case 'async':
                 fn = new Function(
                     this.args({ after: '_callback' }),
-                    this.header() + this.content()
+                    this.header() + this.content({ onDone: () => " _callback();\n" })
+                )
+                break;
+            case 'promise':
+                let tapsContent = this.content({ onDone: () => " _resolve();\n" });
+                let content = `return new Promise(function (_resolve, _reject) {
+                         ${tapsContent}
+                     })`;
+                fn = new Function(
+                    this.args(),
+                    this.header() + content
                 )
                 break;
             default:
@@ -44,11 +54,11 @@ class HookCodeFactory {
         this.deinit();
         return fn;
     }
-    callTapsParallel() {
+    callTapsParallel({ onDone }) {
         let code = `var _counter = ${this.options.taps.length};\n`;
         code += `
                 var _done = function () {
-                    _callback();
+                    ${onDone()}
                 };
             `;
         for (let j = 0; j < this.options.taps.length; j++) {
@@ -84,6 +94,16 @@ class HookCodeFactory {
                    }`})});
                `;
                 break;
+            case 'promise':
+                code = `
+                  var _fn${tapIndex} = _x[${tapIndex}];
+                  var _promise${tapIndex} = _fn${tapIndex}(${this.args()});
+                  _promise${tapIndex}.then(
+                      function () {
+                       if (--_counter === 0) _done();
+                      }
+                  );
+              `;
             default:
                 break;
         }
