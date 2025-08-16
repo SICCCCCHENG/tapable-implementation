@@ -20,6 +20,15 @@ class HookCodeFactory {
     header() {
         let code = "";
         code += "var _x = this._x;\n";
+        if (this.options.interceptors.length > 0) {
+            code += `var _taps = this.taps;\n`;
+            code += `var _interceptors = this.interceptors;\n`;
+        }
+        for (let k = 0; k < this.options.interceptors.length; k++) {
+            const interceptor = this.options.interceptors[k];
+            if (interceptor.call)
+                code += `_interceptors[${k}].call(${this.args()});\n`;
+        }
         return code;
     }
     create(options) {
@@ -80,6 +89,15 @@ class HookCodeFactory {
     }
     callTap(tapIndex) {
         let code = "";
+        if (this.options.interceptors.length > 0) {
+            code += `var _tap${tapIndex} = _taps[${tapIndex}];`;
+            for (let i = 0; i < this.options.interceptors.length; i++) {
+                let interceptor = this.options.interceptors[i];
+                if (interceptor.tap) {
+                    code += `_interceptors[${i}].tap(_tap${tapIndex});`;
+                }
+            }
+        }
         code += `var _fn${tapIndex} = _x[${tapIndex}];\n`
         let tap = this.options.taps[tapIndex];
         switch (tap.type) {

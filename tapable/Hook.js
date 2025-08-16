@@ -6,6 +6,7 @@ class Hook {
         this.call = CALL_DELEGATE;
         this.callAsync = CALL_ASYNC_DELEGATE;
         this.promise = PROMISE_DELEGATE;
+        this.interceptors = [];
     }
     tap(options, fn) {
         this._tap("sync", options, fn);
@@ -20,7 +21,22 @@ class Hook {
         if (typeof options === 'string')
             options = { name: options };
         let tapInfo = { ...options, type, fn };
+        tapInfo = this._runRegisterInterceptors(tapInfo);
         this._insert(tapInfo);
+    }
+    _runRegisterInterceptors(tapInfo) {
+        for (const interceptor of this.interceptors) {
+            if (interceptor.register) {
+                let newTapInfo = interceptor.register(tapInfo);
+                if (newTapInfo) {
+                    tapInfo = newTapInfo;
+                }
+            }
+        }
+        return tapInfo;
+    }
+    intercept(interceptor) {
+        this.interceptors.push(interceptor);
     }
     _resetCompilation() {
         this.call = CALL_DELEGATE;
@@ -36,6 +52,7 @@ class Hook {
         return this.compile({
             taps: this.taps,
             args: this.args,
+            interceptors:this.interceptors,
             type
         });
     }
