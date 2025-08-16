@@ -32,12 +32,30 @@ class HookCodeFactory {
                     this.header() + this.content()
                 )
                 break;
+            case 'async':
+                fn = new Function(
+                    this.args({ after: '_callback' }),
+                    this.header() + this.content()
+                )
+                break;
             default:
                 break;
         }
         this.deinit();
-        debugger
         return fn;
+    }
+    callTapsParallel() {
+        let code = `var _counter = ${this.options.taps.length};\n`;
+        code += `
+                var _done = function () {
+                    _callback();
+                };
+            `;
+        for (let j = 0; j < this.options.taps.length; j++) {
+            const content = this.callTap(j);
+            code += content;
+        }
+        return code;
     }
     callTapsSeries() {
         if (this.options.taps.length === 0) {
@@ -57,6 +75,14 @@ class HookCodeFactory {
         switch (tap.type) {
             case 'sync':
                 code += `_fn${tapIndex}(${this.args()});\n`;
+                break;
+            case 'async':
+                code += ` 
+                   _fn${tapIndex}(${this.args({
+                    after: `function (_err${tapIndex}) {
+                       if (--_counter === 0) _done();
+                   }`})});
+               `;
                 break;
             default:
                 break;

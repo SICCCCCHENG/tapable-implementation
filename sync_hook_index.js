@@ -1,4 +1,5 @@
 const { SyncHook } = require("./tapable");
+debugger
 let syncHook = new SyncHook(["name", "age"]);
 
 syncHook.tap({ name: '1' }, (name, age) => {
